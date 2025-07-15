@@ -1,115 +1,152 @@
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
+import { useState } from 'react';
+import { Plus, Minus, X, Divide, Percent, Delete, Equal } from 'lucide-react';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+// Main Calculator App Component
+export default function CalculatorApp() {
+  // State variables to manage calculator's state
+  const [displayValue, setDisplayValue] = useState('0');
+  const [firstOperand, setFirstOperand] = useState(null);
+  const [operator, setOperator] = useState(null);
+  const [waitingForSecondOperand, setWaitingForSecondOperand] = useState(false);
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+  // Function to handle number inputs
+  const inputDigit = (digit) => {
+    if (waitingForSecondOperand) {
+      setDisplayValue(String(digit));
+      setWaitingForSecondOperand(false);
+    } else {
+      setDisplayValue(displayValue === '0' ? String(digit) : displayValue + digit);
+    }
+  };
 
-export default function Home() {
-  return (
-    <div
-      className={`${geistSans.className} ${geistMono.className} font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20`}
+  // Function to handle decimal point input
+  const inputDecimal = () => {
+    if (waitingForSecondOperand) {
+        setDisplayValue('0.');
+        setWaitingForSecondOperand(false);
+        return;
+    }
+    if (!displayValue.includes('.')) {
+      setDisplayValue(displayValue + '.');
+    }
+  };
+
+  // Function to clear the entire calculator state
+  const clearAll = () => {
+    setDisplayValue('0');
+    setFirstOperand(null);
+    setOperator(null);
+    setWaitingForSecondOperand(false);
+  };
+  
+  // Function to handle backspace/delete
+  const deleteLast = () => {
+    if (displayValue.length > 1) {
+        setDisplayValue(displayValue.slice(0, -1));
+    } else {
+        setDisplayValue('0');
+    }
+  }
+
+  // Core calculation logic
+  const calculate = (op1, op2, op) => {
+    switch (op) {
+      case '+':
+        return op1 + op2;
+      case '-':
+        return op1 - op2;
+      case '*':
+        return op1 * op2;
+      case '/':
+        if (op2 === 0) return 'Error';
+        return op1 / op2;
+      default:
+        return op2;
+    }
+  };
+
+  // Function to handle operator inputs (+, -, *, /)
+  const performOperation = (nextOperator) => {
+    const inputValue = parseFloat(displayValue);
+
+    if (operator && waitingForSecondOperand) {
+        setOperator(nextOperator);
+        return;
+    }
+
+    if (firstOperand === null) {
+      setFirstOperand(inputValue);
+    } else if (operator) {
+      const result = calculate(firstOperand, inputValue, operator);
+      setDisplayValue(String(parseFloat(result.toFixed(7))));
+      setFirstOperand(result);
+    }
+
+    setWaitingForSecondOperand(true);
+    setOperator(nextOperator);
+  };
+  
+  // Function for percentage calculation
+  const handlePercent = () => {
+      const currentValue = parseFloat(displayValue);
+      const result = currentValue / 100;
+      setDisplayValue(String(result));
+  }
+
+  // Button component for reusability
+  const Button = ({ onClick, children, className = '' }) => (
+    <button
+      onClick={onClick}
+      className={`flex justify-center items-center h-20 w-20 rounded-full text-3xl font-medium focus:outline-none transition-colors duration-200 ${className}`}
     >
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              pages/index.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {children}
+    </button>
+  );
+
+  return (
+    <div className="bg-gray-900 min-h-screen flex items-center justify-center font-sans">
+      <div className="w-full max-w-sm mx-auto">
+        <div className="bg-black rounded-3xl shadow-2xl p-4 sm:p-6">
+          {/* Display Screen */}
+          <div className="mb-6 h-24 flex items-end justify-end">
+            <p className="text-white text-6xl font-light tracking-wider break-all text-right">
+              {displayValue}
+            </p>
+          </div>
+
+          {/* Button Grid */}
+          <div className="grid grid-cols-4 gap-3">
+            {/* Row 1 */}
+            <Button onClick={clearAll} className="bg-gray-400 text-black hover:bg-gray-300">AC</Button>
+            <Button onClick={deleteLast} className="bg-gray-400 text-black hover:bg-gray-300"><Delete size={30} /></Button>
+            <Button onClick={handlePercent} className="bg-gray-400 text-black hover:bg-gray-300"><Percent size={30} /></Button>
+            <Button onClick={() => performOperation('/')} className={`text-white ${operator === '/' && !waitingForSecondOperand ? 'bg-white text-yellow-500' : 'bg-yellow-500'}`}><Divide size={30} /></Button>
+            
+            {/* Row 2 */}
+            <Button onClick={() => inputDigit(7)} className="bg-gray-700 text-white hover:bg-gray-600">7</Button>
+            <Button onClick={() => inputDigit(8)} className="bg-gray-700 text-white hover:bg-gray-600">8</Button>
+            <Button onClick={() => inputDigit(9)} className="bg-gray-700 text-white hover:bg-gray-600">9</Button>
+            <Button onClick={() => performOperation('*')} className={`text-white ${operator === '*' && !waitingForSecondOperand ? 'bg-white text-yellow-500' : 'bg-yellow-500'}`}><X size={30} /></Button>
+
+            {/* Row 3 */}
+            <Button onClick={() => inputDigit(4)} className="bg-gray-700 text-white hover:bg-gray-600">4</Button>
+            <Button onClick={() => inputDigit(5)} className="bg-gray-700 text-white hover:bg-gray-600">5</Button>
+            <Button onClick={() => inputDigit(6)} className="bg-gray-700 text-white hover:bg-gray-600">6</Button>
+            <Button onClick={() => performOperation('-')} className={`text-white ${operator === '-' && !waitingForSecondOperand ? 'bg-white text-yellow-500' : 'bg-yellow-500'}`}><Minus size={30} /></Button>
+
+            {/* Row 4 */}
+            <Button onClick={() => inputDigit(1)} className="bg-gray-700 text-white hover:bg-gray-600">1</Button>
+            <Button onClick={() => inputDigit(2)} className="bg-gray-700 text-white hover:bg-gray-600">2</Button>
+            <Button onClick={() => inputDigit(3)} className="bg-gray-700 text-white hover:bg-gray-600">3</Button>
+            <Button onClick={() => performOperation('+')} className={`text-white ${operator === '+' && !waitingForSecondOperand ? 'bg-white text-yellow-500' : 'bg-yellow-500'}`}><Plus size={30} /></Button>
+
+            {/* Row 5 */}
+            <Button onClick={() => inputDigit(0)} className="col-span-2 w-auto justify-start pl-8 bg-gray-700 text-white hover:bg-gray-600">0</Button>
+            <Button onClick={inputDecimal} className="bg-gray-700 text-white hover:bg-gray-600">.</Button>
+            <Button onClick={() => performOperation('=')} className="bg-yellow-500 text-white hover:bg-yellow-400"><Equal size={30} /></Button>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
     </div>
   );
 }
